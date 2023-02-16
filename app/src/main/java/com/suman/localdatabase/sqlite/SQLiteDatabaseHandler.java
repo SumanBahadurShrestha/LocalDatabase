@@ -171,4 +171,11 @@ public class SQLiteDatabaseHandler extends SQLiteOpenHelper {
       SQLiteDatabase db = this.getWritableDatabase();
       return db.delete("Country", "id =?", new String[]{String.valueOf(id)});
     }
+
+    //resetData
+    public void resetData(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM Country");
+        db.execSQL("DELETE FROM sqlite_sequence WHERE name = 'Country'");
+    }
 }

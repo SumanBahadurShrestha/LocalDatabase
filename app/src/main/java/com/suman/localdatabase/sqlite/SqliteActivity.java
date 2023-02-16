@@ -58,10 +58,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +85,7 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
     private static final int REQUEST_CODE_WSTORAGED = 203;
     private static final int REQUEST_CODE_RSTORAGED = 204;
     private static final int SELECT_PICTURE = 205;
-    String[] permissions = {"android.permission.WRITE_EXTERNAL_STORAGE"};
+    String[] permissions = {"android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_EXTERNAL_STORAGE"};
     //
     int pId;
     String pName;
@@ -110,7 +112,6 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
         buttonfav = (Button) findViewById(R.id.lookfav);
         buttoncsv = (Button) findViewById(R.id.btcsv);
         showDataFromDatabase();
-
         listViews.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -173,7 +174,6 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
                         String date = simpleDateFormat.format(calendar.getTime());
 //                        String bpath = getPath(bitmap);
                         String ppath = getPath(filepath);
-//                        System.out.println(ppath+"look shova"+ bpath);
                         byte[] path = ImageViewToByte(imageViewImage);
                         if (inputsareCorrect(name, salary)){
                             boolean result = sqLiteDatabaseHandler.addEmployee(name, dep, date, salary, path, 0, ppath);
@@ -188,7 +188,6 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
                 dialog.show();
             }
         });
-
         buttonbackup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -317,8 +316,6 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
         if (resultCode == RESULT_OK ){
             if (requestCode == SELECT_PICTURE){
                 filepath = data.getData();
-//                String xxx = getPath(filepath);
-//                System.out.println(xxx + " dfghjhgvfghj "+ filepath);
 //                try {
 //                    bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),filepath);
 ////                    imageViewImage.setImageBitmap(bitmap);
@@ -423,6 +420,16 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
                 fileWriter.append(",");
                 fileWriter.append("" + countries.get(i).getImage_url());
                 fileWriter.append("\n");
+                
+                //
+                String image_uri = countries.get(i).getImage_url();
+                Uri uri = Uri.parse(image_uri);
+                String imageName = uri.getLastPathSegment();
+//                String imagePath = this.getCacheDir().toString();
+                String imgpath = image_uri.replace(imageName, "");
+                String newPath = Environment.getExternalStorageDirectory()+"/StudentBackup/" + "images";
+                System.out.println( imageName + " aaaaaaaaaaaaaaa " + imgpath + " bbbbbbbbbbbb " + newPath);
+                copyImages(imgpath, imageName, newPath);
             }
             fileWriter.flush();
             fileWriter.close();
@@ -431,7 +438,35 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
             e.printStackTrace();
         }
     }
+
+    private void copyImages(String imagePath, String imageName, String newPath) {
+        File file = new File(newPath);
+        if (!file.exists()){
+            file.mkdir();
+            Toast.makeText(mContext, "created" + file, Toast.LENGTH_SHORT).show();
+        }
+        try {
+            Toast.makeText(mContext, "inside" + file, Toast.LENGTH_SHORT).show();
+            InputStream inputStream = new FileInputStream(imagePath+"/"+imageName);
+            OutputStream outputStream = new FileOutputStream(newPath+"/"+imageName);
+            byte[] bytes = new byte[1024];
+            int len;
+            while((len = inputStream.read(bytes)) != -1){
+                outputStream.write(bytes, 0, len);
+            }
+            inputStream.close();
+            outputStream.flush();
+            outputStream.close();
+            Toast.makeText(mContext, "Copied", Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void ImportDatabase() {
+        sqLiteDatabaseHandler.resetData();
         File file = new File(Environment.getExternalStorageDirectory() + "/StudentBackup/"+ "student.csv");
         if (file.canWrite()){
             Toast.makeText(mContext, "Write" + file, Toast.LENGTH_SHORT).show();
@@ -448,10 +483,14 @@ public class SqliteActivity extends AppCompatActivity implements SearchView.OnQu
                 String image = nextline[5];
                 String fav = nextline[6];
                 String imageURL = nextline[7];
-//                //convert uri to byte
-                Uri imageuri = Uri.parse(imageURL);
-                System.out.println(imageuri + " sdfghjklkjhgfdssdfghjk " + imageURL);
 
+                Uri imageuri = Uri.parse(imageURL);
+                String imageName = imageuri.getLastPathSegment();
+                String oldimgpath = imageURL.replace(imageName, "");
+                String newimgpath = Environment.getExternalStorageDirectory() + "/StudentBackup/images/";
+                String finalPath = imageURL.replace(oldimgpath, newimgpath);
+                System.out.println(imageuri + " sdfghjklkjhgfdssdfghjk " + imageURL+"/"+finalPath);
+//                //convert uri to byte
                 byte[] bbytes = null;
 //                InputStream fis = getContentResolver().openInputStream(imageuri);
                 try {
